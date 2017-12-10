@@ -39,7 +39,7 @@ void write_file(unsigned char* text, int length, char* filename)
     fclose(f);
 }
 
-void read_file(char *filename, unsigned char* buffer, int* buffer_length) 
+unsigned char* read_file(char *filename, int* buffer_length) 
 {
     FILE *f = fopen(filename, "rb");
 
@@ -51,11 +51,11 @@ void read_file(char *filename, unsigned char* buffer, int* buffer_length)
     content[length] = '\0';
     fread(content, 1, length, f);
     
-    fclose(f);
+    fclose(f); 
 
-    buffer = (unsigned char *) malloc(length + 1);
-    buffer = memcpy(buffer, content, length+1);
     *buffer_length = length;
+
+    return content;
 }
 
 int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_len, unsigned char *key, unsigned char *iv,  unsigned char* ciphertext)
@@ -105,12 +105,63 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
     return ciphertext_len;
 }
 
+int decrypt(const char* algorithm_name, unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
+  unsigned char *iv, unsigned char *plaintext)
+{
+  EVP_CIPHER_CTX *ctx;
+    const EVP_CIPHER *algorithm; 
+
+    int len;
+
+    int plaintext_len;
+
+    OpenSSL_add_all_algorithms();
+
+    /* Create and initialise the context */
+    if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+
+    if (!(algorithm = EVP_get_cipherbyname(algorithm_name)))
+    {
+        printf("Cipher name not ok\n");
+        return -1;
+    }
+
+  /* Initialise the decryption operation. IMPORTANT - ensure you use a key
+   * and IV size appropriate for your cipher
+   * In this example we are using 256 bit AES (i.e. a 256 bit key). The
+   * IV size for *most* modes is the same as the block size. For AES this
+   * is 128 bits */
+  if(1 != EVP_DecryptInit_ex(ctx, algorithm, NULL, key, iv))
+    handleErrors();
+
+  /* Provide the message to be decrypted, and obtain the plaintext output.
+   * EVP_DecryptUpdate can be called multiple times if necessary
+   */
+  if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
+    handleErrors();
+  plaintext_len = len;
+
+  /* Finalise the decryption. Further plaintext bytes may be written at
+   * this stage.
+   */
+  if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) handleErrors();
+  plaintext_len += len;
+
+  /* Clean up */
+  EVP_CIPHER_CTX_free(ctx);
+
+  return plaintext_len;
+}
+
 void run_encryption(char* file1, char* file2, char* mode)
 {
-    unsigned char *key = (unsigned char *)"01234567890123456";
+    /* A 256 bit key */
+    unsigned char *key = (unsigned char *)"0123456789012345";
+
+    /* A 128 bit IV */
     unsigned char *iv = (unsigned char *)"0123456789012345";
     unsigned char *plaintext;
-    unsigned char ciphertext[128];
+    unsigned char ciphertext[256];
     char algorithm_name[11] = "AES-128-";
 
     if (strcmp(mode, "ecb")==0)
@@ -118,14 +169,22 @@ void run_encryption(char* file1, char* file2, char* mode)
         iv = NULL;
     }
 
-    int plaintext_length, ciphertext_len;
+    int plaintext_len, ciphertext_len;
 
-    read_file(file1, plaintext, &plaintext_length);
+    plaintext = read_file(file1, &plaintext_len);
 
     strcat(algorithm_name, stoupper(mode));
 
-    ciphertext_len = encrypt(algorithm_name, plaintext, plaintext_length, key, iv, ciphertext);
-    write_file(ciphertext, ciphertext_len, "out.txt");
+    ciphertext_len = encrypt(algorithm_name, plaintext, plaintext_len, key, iv, ciphertext);
+
+    printf("Ciphertext is:\n");
+    BIO_dump_fp (stdout, (const char *)ciphertext, ciphertext_len);
+
+    plaintext_len = decrypt(algorithm_name, ciphertext, ciphertext_len, key, iv, plaintext);
+
+    printf("Decrypted text is:%s\n", plaintext);
+    
+    write_file(ciphertext, ciphertext_len, file2);
 }
 
 int main(int argc, char** argv)
