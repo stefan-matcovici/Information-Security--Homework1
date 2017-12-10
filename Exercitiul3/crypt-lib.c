@@ -4,6 +4,7 @@
 
 void handleErrors(void)
 {
+  ERR_load_crypto_strings();
   ERR_print_errors_fp(stderr);
   abort();
 }
@@ -58,22 +59,23 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
 int decrypt(const char* algorithm_name, unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned char *iv, unsigned char *plaintext)
 {
   EVP_CIPHER_CTX *ctx;
-    const EVP_CIPHER *algorithm; 
 
-    int len;
+  const EVP_CIPHER *algorithm; 
 
-    int plaintext_len;
+  int len;
 
-    OpenSSL_add_all_algorithms();
+  int plaintext_len;
 
-    /* Create and initialise the context */
-    if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+  OpenSSL_add_all_algorithms();
 
-    if (!(algorithm = EVP_get_cipherbyname(algorithm_name)))
-    {
-        printf("Cipher name not ok\n");
-        return -1;
-    }
+  /* Create and initialise the context */
+  if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+
+  if (!(algorithm = EVP_get_cipherbyname(algorithm_name)))
+  {
+      printf("Cipher name not ok\n");
+      return -1;
+  }
 
   /* Initialise the decryption operation. IMPORTANT - ensure you use a key
    * and IV size appropriate for your cipher

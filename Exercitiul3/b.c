@@ -12,7 +12,7 @@
 #include <arpa/inet.h>
 
 
-#include "crypt-lib.c"
+#include "communication.c"
 
 #include <stddef.h>
 
@@ -21,41 +21,7 @@
 #define BUFFER_SIZE 1024
 #define on_error(...) { fprintf(stderr, __VA_ARGS__); fflush(stderr); exit(1); }
 
-unsigned char *key = (unsigned char *)"0123456789012345";
-
 unsigned int listen_socket;
-
-/* 
- * error - wrapper for perror
- */
-void error(char *msg) {
-    perror(msg);
-    exit(0);
-}
-
-unsigned int create_tcp_socket(const char* serverIp, int serverPort)
-{
-    struct sockaddr_in  server;
-    int        socketDescriptor;
-
-    if ((socketDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-    {
-        fprintf(stderr,"Error on creating socket: %s\n",strerror(errno));
-        return -1;
-    }
-
-    server.sin_family       = AF_INET;
-    server.sin_addr.s_addr  = inet_addr(serverIp);
-    server.sin_port         = htons(serverPort);
-
-    if (connect(socketDescriptor, (struct sockaddr *)&server, sizeof(struct sockaddr)) == -1)
-    {
-        fprintf(stderr,"Error connecting to server: %s\n",strerror(errno));
-        return -1;
-    }
-
-    return socketDescriptor;
-}
 
 unsigned int accept_tcp_connection()
 {
@@ -117,7 +83,7 @@ int main (int argc, char *argv[]) {
 
   if (argc != 4)
   {
-    fprintf(stderr, "Usage: %s <Server Port> <hostname> <key manager port>\n", argv[0]);
+    fprintf(stderr, "Usage: %s <server Port> <hostname> <key manager port>\n", argv[0]);
     exit(1);
   }
   
@@ -137,30 +103,13 @@ int main (int argc, char *argv[]) {
 
     printf("%s\n", buf);
 
-    unsigned int key_manager_socket = create_tcp_socket(argv[2], atoi(argv[3]));
-    int n = write(key_manager_socket, buf, strlen(buf));
-    if (n < 0) 
-      error("ERROR writing to socket");
-
-    /* print the server's reply */
-    bzero(buf, BUFFER_SIZE);
-    n = read(key_manager_socket, buf, BUFFER_SIZE);
-    if (n < 0) 
-      error("ERROR reading from socket");
-    
-    int received_key_len;
     unsigned char received_key[128];
+    int received_key_len;
 
-    received_key_len = decrypt("AES-128-ECB", buf, n, key, NULL, received_key);
-
-    printf("Key is:\n");
-    BIO_dump_fp (stdout, (const char *)key, received_key_len);
-    close(key_manager_socket);
-
+    received_key_len = get_key_from_server(argv[2], argv[3], buf, received_key);
 
     err = send(client, "yes", 3, 0);
     if (err < 0) on_error("Client write failed\n");
-
     
   }
 
