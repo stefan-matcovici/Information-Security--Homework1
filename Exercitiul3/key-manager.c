@@ -127,11 +127,8 @@ int main (int argc, char *argv[]) {
     if (!read) break; // done reading
     if (read < 0)on_error("Client read failed\n");
 
-    printf("%d\n", strlen((char *)selected_key));
-
     int crypted_key_len;
     crypted_key_len = encrypt("AES-128-ECB", selected_key, strlen((char *)selected_key), key, NULL, crypted_key);
-    printf("crypted key len: %d", crypted_key_len);
     printf("Ciphertext is:\n");
     BIO_dump_fp (stdout, (const char *)crypted_key, crypted_key_len);
 

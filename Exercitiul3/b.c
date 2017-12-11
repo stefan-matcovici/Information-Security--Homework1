@@ -80,6 +80,7 @@ int main (int argc, char *argv[]) {
   unsigned int          client;
   char buf[BUFFER_SIZE];
   int err;
+  unsigned char decrypted_text[17];
 
   if (argc != 4)
   {
@@ -101,7 +102,7 @@ int main (int argc, char *argv[]) {
     if (!r) break; // done reading
     if (r < 0)on_error("Client read failed\n");
 
-    printf("%s\n", buf);
+    // printf("%s\n", buf);
 
     unsigned char received_key[128];
     int received_key_len;
@@ -110,6 +111,28 @@ int main (int argc, char *argv[]) {
 
     err = send(client, "yes", 3, 0);
     if (err < 0) on_error("Client write failed\n");
+
+    int block_size;
+    r = recv(client, &block_size, sizeof(int), 0);
+    
+    while (block_size!=0)
+    {
+        r = recv(client, buf, block_size, 0);
+
+        // printf("Received %d is:\n", block_size);
+        // BIO_dump_fp (stdout, (const char *)buf, block_size);
+
+        // printf("Key %d is:\n", received_key_len);
+        // BIO_dump_fp (stdout, (const char *)received_key, received_key_len);
+
+        int decrypted_block_size = decrypt("AES-128-ECB", buf, block_size, received_key, NULL, decrypted_text);
+        decrypted_text[decrypted_block_size]=0;
+        printf("%s", decrypted_text);
+        r = recv(client, &block_size, sizeof(int), 0);
+    }
+
+    fflush(stdout);
+
     
   }
 

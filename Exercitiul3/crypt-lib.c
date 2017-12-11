@@ -20,6 +20,9 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
 
     OpenSSL_add_all_algorithms();
 
+    // printf("Key %d is:\n", strlen((char*)key));
+    // BIO_dump_fp (stdout, (const char *)key, strlen((char*)key));
+
     /* Create and initialise the context */
     if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
 
@@ -29,6 +32,9 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
         return -1;
     }
 
+    // printf("Plaintext %d is:\n", plaintext_len);
+    // BIO_dump_fp (stdout, (const char *)plaintext, plaintext_len);
+
     /* Initialise the encryption operation. IMPORTANT - ensure you use a key
     * and IV size appropriate for your cipher
     * In this example we are using 256 bit AES (i.e. a 256 bit key). The
@@ -36,6 +42,8 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
     * is 128 bits */
     if(1 != EVP_EncryptInit_ex(ctx, algorithm, NULL, key, iv))
         handleErrors();
+
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
 
     /* Provide the message to be encrypted, and obtain the encrypted output.
     * EVP_EncryptUpdate can be called multiple times if necessary
@@ -52,6 +60,9 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
 
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
+
+    // printf("Ciphertext %d is:\n", ciphertext_len);
+    // BIO_dump_fp (stdout, (const char *)ciphertext, ciphertext_len);
 
     return ciphertext_len;
 }
@@ -84,6 +95,8 @@ int decrypt(const char* algorithm_name, unsigned char *ciphertext, int ciphertex
    * is 128 bits */
   if(1 != EVP_DecryptInit_ex(ctx, algorithm, NULL, key, iv))
     handleErrors();
+
+  EVP_CIPHER_CTX_set_padding(ctx, 0);
 
   /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary

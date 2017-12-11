@@ -68,8 +68,6 @@ int get_key_from_server(char* hostname, char* port, char* mode, unsigned char* r
 
     received_key_len = decrypt("AES-128-ECB", buf, n, key, NULL, received_key);
 
-    printf("Key is:\n");
-    BIO_dump_fp (stdout, (const char *)received_key, received_key_len);
     close(key_manager_socket);
 
     return received_key_len;
