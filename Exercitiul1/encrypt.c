@@ -21,9 +21,22 @@ char* stoupper( char* s )
 
 void handleErrors(void)
 {
-  ERR_load_crypto_strings();
   ERR_print_errors_fp(stderr);
   abort();
+}
+
+void write_file(unsigned char* text, int length, char* filename)
+{
+    FILE *f = fopen(filename, "wb");
+    if (f == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1);
+    }
+
+    fwrite(text, length, 1, f);
+
+    fclose(f);
 }
 
 unsigned char* read_file(char *filename, int* buffer_length) 
@@ -92,9 +105,47 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
     return ciphertext_len;
 }
 
+void run_encryption(char* file1, char* file2, char* mode, char* word)
+{
+    unsigned char key[16];
+    unsigned char *iv = (unsigned char *)"0123456789012345";
+    unsigned char *plaintext;
+    unsigned char ciphertext[256];
+    char algorithm_name[11] = "AES-128-";
+    int plaintext_len, ciphertext_len;
+
+    if (strcmp(mode, "ecb")==0)
+    {
+        iv = NULL;
+    }
+
+    memset(key, 0, 16);
+    strcpy(key, word);
+    if (strlen(word)<16)
+    {
+        for (int j=0;j<16;j++)
+        {
+            if (key[j]==0)
+            {
+                key[j]=' ';
+            }
+        }
+    }
+
+    plaintext = read_file(file1, &plaintext_len);
+    strcat(algorithm_name, stoupper(mode));
+
+    ciphertext_len = encrypt(algorithm_name, plaintext, plaintext_len, key, iv, ciphertext);
+
+    // printf("Ciphertext is:\n");
+    // BIO_dump_fp (stdout, (const char *)ciphertext, ciphertext_len);
+    
+    write_file(ciphertext, ciphertext_len, file2);
+}
+
 int main(int argc, char** argv)
 {
-    if ( argc != 4 )
+    if ( argc != 5 )
     {
         printf("Invalid number of parameters!\n");
         exit(1);
@@ -103,56 +154,9 @@ int main(int argc, char** argv)
     char* file1 = argv[1];
     char* file2 = argv[2];
     char* mode = argv[3];
+    char* word = argv[4];
 
-    unsigned char *iv = (unsigned char *)"0123456789012345";
-
-    char algorithm_name[11] = "AES-128-";
-
-    if (strcmp(mode, "ecb")==0)
-    {
-        iv = NULL;
-    }
-    strcat(algorithm_name, stoupper(mode));
-
-    int word_dict_len, plaintext_len, cryptotext_len;
-
-    unsigned char* words = read_file("word_dict.txt", &word_dict_len);
-    unsigned char* plaintext = read_file(file1, &plaintext_len);
-    unsigned char* cryptotext = read_file(file2, &cryptotext_len);
-
-    char* token;
-    unsigned char word[16];
-    token = strtok (words,"\n");
-    int tries = 0;
-    while (token != NULL)
-    {
-        tries++;
-        memset(word, 0, 16);
-        strcpy(word, token);
-        if (strlen(word)<16)
-        {
-            for (int j=0;j<16;j++)
-            {
-                if (word[j]==0)
-                {
-                  word[j]=' ';
-                }
-            }
-        }
-        word[16]=0;
-        int computed_plaintext_len;
-        unsigned char computed_plaintext[256];
-        computed_plaintext_len = encrypt(algorithm_name, plaintext, plaintext_len, word, NULL, computed_plaintext);
-        computed_plaintext[computed_plaintext_len]=0;
-
-        if (strcmp(computed_plaintext, cryptotext)==0)
-        {
-            printf("Key is %s\nTried: %d\n",token,tries);
-            break;
-        }
-
-        token = strtok (NULL, "\n");
-    }
+    run_encryption(file1, file2, mode, word);
 
     return 0;
 }
