@@ -4,3 +4,7 @@ all:
 	gcc -I$(INC) -L$(LIB) -o key-manager key-manager.c -lcrypto -ldl
 	gcc -I$(INC) -L$(LIB) -o a a.c -lcrypto -ldl
 	gcc -I$(INC) -L$(LIB) -o b b.c -lcrypto -ldl
+clean:
+	rm a
+	rm b
+	rm key-manager
