@@ -25,6 +25,7 @@ void error(char *msg) {
 }
 
 unsigned char *key = (unsigned char *)"0123456789012345";
+unsigned char *iv = (unsigned char *)"0123456789012345";
 
 unsigned int create_tcp_socket(const char* serverIp, int serverPort)
 {

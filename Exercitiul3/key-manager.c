@@ -15,8 +15,8 @@
 #define BUFFER_SIZE 1024
 #define on_error(...) { fprintf(stderr, __VA_ARGS__); fflush(stderr); exit(1); }
 
-unsigned char *ecb_key = (unsigned char *)"0123456789012345";
-unsigned char *cbc_key = (unsigned char *)"0123456789012345";
+unsigned char *ecb_key = (unsigned char *)"1234501234567890";
+unsigned char *cbc_key = (unsigned char *)"9012345012345678";
 unsigned char *key = (unsigned char *)"0123456789012345";
 
 unsigned int listen_socket;
@@ -93,14 +93,16 @@ int main (int argc, char *argv[]) {
   char buf[BUFFER_SIZE];
   int err;
 
-  printf("Key is:\n");
-  BIO_dump_fp (stdout, (const char *)ecb_key, strlen ((char *)ecb_key));
-
-
-  if (argc != 2)
+  if (argc < 2)
   {
-    fprintf(stderr, "Usage: %s <Server Port>\n", argv[0]);
+    fprintf(stderr, "Usage: %s <Server Port> [-v]\n", argv[0]);
     exit(1);
+  }
+
+  if (argc == 3)
+  {
+      if (strcmp(argv[2], "-v")==0)
+        set_verbose();
   }
   
   if ( create_tcp_listening_socket(atoi(argv[1])) == -1 )
@@ -112,29 +114,25 @@ int main (int argc, char *argv[]) {
       continue;
     
     int read = recv(client, buf, BUFFER_SIZE, 0);
-
-
     buf[3] = 0;
+    message_log("Received message: ", buf);
+
     unsigned char* selected_key = get_key(buf);
     unsigned char crypted_key[128];
 
     if (selected_key==NULL)
     {
-        printf("%s\n", buf);
+        printf("Incorrect mode: %s\n", buf);
         exit(1);
     }
 
-    if (!read) break; // done reading
-    if (read < 0)on_error("Client read failed\n");
-
     int crypted_key_len;
     crypted_key_len = encrypt("AES-128-ECB", selected_key, strlen((char *)selected_key), key, NULL, crypted_key);
-    printf("Ciphertext is:\n");
-    BIO_dump_fp (stdout, (const char *)crypted_key, crypted_key_len);
+
+    binary_log("Sending back crypted key", crypted_key, crypted_key_len);
 
     err = send(client, crypted_key, crypted_key_len, 0);
     if (err < 0) on_error("Client write failed\n");
-    
   }
 
   return 0;

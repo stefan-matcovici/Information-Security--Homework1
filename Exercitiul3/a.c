@@ -48,8 +48,9 @@ void send_file(char* filename, char* mode, unsigned int socket, unsigned char* r
   unsigned char crypted_block[BLOCKSIZE];
   unsigned char previous_crypted_block[BLOCKSIZE];
 
-  int crypted_block_len;
+  memcpy(previous_crypted_block, iv, BLOCKSIZE);
 
+  int crypted_block_len;
 
   for (int i=0;i<content_length;i+=BLOCKSIZE)
   {
@@ -67,28 +68,26 @@ void send_file(char* filename, char* mode, unsigned int socket, unsigned char* r
       }
     }
 
-    printf("%s\n", block);
+    binary_log("Plaintext block ", block, strlen(block));
     if (strcmp("ecb", mode)==0)
     {
       crypted_block_len = encrypt("AES-128-ECB", block, strlen((char*)block), received_key, NULL,  crypted_block);
     }
     else if(strcmp("cbc", mode)==0)
     {
-
+      crypted_block_len = encrypt("AES-128-CBC", block, strlen((char*)block), received_key, previous_crypted_block,  crypted_block);
     }
 
     unsigned char decrypted_text[256];
     int decrypted_block_size = decrypt("AES-128-ECB", crypted_block, crypted_block_len, received_key, NULL, decrypted_text);
-    printf("Crypted %d is:\n", crypted_block_len);
-    BIO_dump_fp (stdout, (const char *)crypted_block, crypted_block_len);
-
-    printf("Key %d is:\n", 16);
-    BIO_dump_fp (stdout, (const char *)received_key, 16);
+    binary_log("Sending crypted block ", crypted_block, crypted_block_len);
 
     n = write(socket, &crypted_block_len, sizeof(int));
     n = write(socket, crypted_block, crypted_block_len);
     if (n < 0) 
       error("ERROR writing to socket");
+    
+    memcpy(previous_crypted_block, crypted_block, BLOCKSIZE);
   }
 
   int zero_size = 0;
@@ -104,29 +103,28 @@ int main(int argc, char **argv) {
     char *hostname;
     char buf[BUFSIZE];
 
-    /* check command line arguments */
-    if (argc != 6) {
-       fprintf(stderr,"usage: %s <hostname> <key manager port> <receviver port> <mode> <file>\n", argv[0]);
+    if (argc < 6) {
+       fprintf(stderr,"usage: %s <hostname> <key manager port> <receviver port> <mode> <file> [-v]\n", argv[0]);
        exit(0);
+    }
+
+    if (argc == 7)
+    {
+        if (strcmp(argv[6], "-v")==0)
+          set_verbose();
     }
     
     unsigned int b_socket = create_tcp_socket(argv[1], atoi(argv[3]));
     strcpy(buf, argv[4]);
-    /* send the message line to the server */
     buf[3]=0;
     n = write(b_socket, buf, strlen(buf));
     if (n < 0) 
       error("ERROR writing to socket");
 
-    strcpy(buf, argv[4]);
-    buf[3]=0;
-
     unsigned char received_key[128];
     int received_key_len;
-
     received_key_len = get_key_from_server(argv[1], argv[2], argv[4], received_key);
 
-    /* print the server's reply */
     bzero(buf, BUFSIZE);
     n = read(b_socket, buf, BUFSIZE);
     if (n < 0) 

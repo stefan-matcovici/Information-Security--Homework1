@@ -2,6 +2,13 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
+int verbose = 0;
+
+void set_verbose()
+{
+    verbose = 1;
+}
+
 void handleErrors(void)
 {
   ERR_load_crypto_strings();
@@ -115,4 +122,21 @@ int decrypt(const char* algorithm_name, unsigned char *ciphertext, int ciphertex
   EVP_CIPHER_CTX_free(ctx);
 
   return plaintext_len;
+}
+
+void binary_log(const char* message, unsigned char* content, int len)
+{
+    if (verbose==1)
+    {
+        printf("%s of length %d:\n", message, len);
+        BIO_dump_fp (stdout, (const char *)content, len);
+    }
+}
+
+void message_log(char* message, char* content)
+{
+    if (verbose==1)
+    {
+        printf("%s %s\n", message, content);
+    }
 }

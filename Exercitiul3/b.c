@@ -79,6 +79,8 @@ int create_tcp_listening_socket(int serverPort)
 int main (int argc, char *argv[]) {
   unsigned int          client;
   char buf[BUFFER_SIZE];
+  char previous_crypted_block[BUFFER_SIZE];
+  char mode[4];
   int err;
   unsigned char decrypted_text[17];
 
@@ -97,12 +99,9 @@ int main (int argc, char *argv[]) {
       continue;
     
     int r = recv(client, buf, BUFFER_SIZE, 0);
-
     buf[3] = 0;
-    if (!r) break; // done reading
-    if (r < 0)on_error("Client read failed\n");
 
-    // printf("%s\n", buf);
+    strncpy(mode, buf, 3);
 
     unsigned char received_key[128];
     int received_key_len;
@@ -114,26 +113,32 @@ int main (int argc, char *argv[]) {
 
     int block_size;
     r = recv(client, &block_size, sizeof(int), 0);
+
+    memcpy(previous_crypted_block, iv, 16);
     
     while (block_size!=0)
     {
         r = recv(client, buf, block_size, 0);
 
-        // printf("Received %d is:\n", block_size);
-        // BIO_dump_fp (stdout, (const char *)buf, block_size);
+        if (strcmp(mode, "ecb") == 0)
+        {
+            int decrypted_block_size = decrypt("AES-128-ECB", buf, block_size, received_key, NULL, decrypted_text);
+            decrypted_text[decrypted_block_size] = 0;
+        }
+        else if (strcmp(mode, "cbc") == 0)
+        {
+            int decrypted_block_size = decrypt("AES-128-CBC", buf, block_size, received_key, previous_crypted_block, decrypted_text);
+            decrypted_text[decrypted_block_size] = 0;
+            
+            memcpy(previous_crypted_block, buf, block_size);
 
-        // printf("Key %d is:\n", received_key_len);
-        // BIO_dump_fp (stdout, (const char *)received_key, received_key_len);
+        }
 
-        int decrypted_block_size = decrypt("AES-128-ECB", buf, block_size, received_key, NULL, decrypted_text);
-        decrypted_text[decrypted_block_size]=0;
         printf("%s", decrypted_text);
         r = recv(client, &block_size, sizeof(int), 0);
     }
-
+    printf("\n");
     fflush(stdout);
-
-    
   }
 
   return 0;
