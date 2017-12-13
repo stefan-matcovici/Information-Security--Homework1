@@ -108,7 +108,7 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
 void run_encryption(char* file1, char* file2, char* mode, char* word)
 {
     unsigned char key[16];
-    unsigned char *iv = (unsigned char *)"0123456789012345";
+    unsigned char *iv = (unsigned char *)"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f";
     unsigned char *plaintext;
     unsigned char ciphertext[256];
     char algorithm_name[11] = "AES-128-";
@@ -136,9 +136,6 @@ void run_encryption(char* file1, char* file2, char* mode, char* word)
     strcat(algorithm_name, stoupper(mode));
 
     ciphertext_len = encrypt(algorithm_name, plaintext, plaintext_len, key, iv, ciphertext);
-
-    // printf("Ciphertext is:\n");
-    // BIO_dump_fp (stdout, (const char *)ciphertext, ciphertext_len);
     
     write_file(ciphertext, ciphertext_len, file2);
 }

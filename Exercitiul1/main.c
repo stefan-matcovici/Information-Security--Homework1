@@ -94,26 +94,14 @@ int encrypt(const char* algorithm_name, unsigned char* plaintext, int plaintext_
 
 int main(int argc, char** argv)
 {
-    if ( argc != 4 )
-    {
-        printf("Invalid number of parameters!\n");
-        exit(1);
-    }
-
     char* file1 = argv[1];
     char* file2 = argv[2];
     char* mode = argv[3];
 
-    unsigned char *iv = (unsigned char *)"0123456789012345";
-
+    int computed_plaintext_len;
+    unsigned char computed_plaintext[256];
+    unsigned char *iv = (unsigned char *)"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f";
     char algorithm_name[11] = "AES-128-";
-
-    if (strcmp(mode, "ecb")==0)
-    {
-        iv = NULL;
-    }
-    strcat(algorithm_name, stoupper(mode));
-
     int word_dict_len, plaintext_len, cryptotext_len;
 
     unsigned char* words = read_file("word_dict.txt", &word_dict_len);
@@ -121,9 +109,22 @@ int main(int argc, char** argv)
     unsigned char* cryptotext = read_file(file2, &cryptotext_len);
 
     char* token;
-    unsigned char word[16];
-    token = strtok (words,"\n");
+    unsigned char word[17];
     int tries = 0;
+
+    if ( argc != 4 )
+    {
+        printf("Invalid number of parameters!\n");
+        exit(1);
+    }
+
+    if (strcmp(mode, "ecb")==0)
+    {
+        iv = NULL;
+    }
+    strcat(algorithm_name, stoupper(mode));
+
+    token = strtok (words,"\n");
     while (token != NULL)
     {
         tries++;
@@ -140,9 +141,8 @@ int main(int argc, char** argv)
             }
         }
         word[16]=0;
-        int computed_plaintext_len;
-        unsigned char computed_plaintext[256];
-        computed_plaintext_len = encrypt(algorithm_name, plaintext, plaintext_len, word, NULL, computed_plaintext);
+
+        computed_plaintext_len = encrypt(algorithm_name, plaintext, plaintext_len, word, iv, computed_plaintext);
         computed_plaintext[computed_plaintext_len]=0;
 
         if (strcmp(computed_plaintext, cryptotext)==0)

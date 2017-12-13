@@ -16,6 +16,8 @@
 
 #include "crypt-lib.c"
 
+unsigned int listen_socket;
+
 /* 
  * error - wrapper for perror
  */
@@ -49,6 +51,59 @@ unsigned int create_tcp_socket(const char* serverIp, int serverPort)
     }
 
     return socketDescriptor;
+}
+
+unsigned int accept_tcp_connection()
+{
+    int                 client;
+    struct sockaddr_in  from;
+    int                 length = sizeof(from);
+
+    if ((client = accept(listen_socket, (struct sockaddr *)&from, (socklen_t *)&length)) < 0)
+    {
+        perror("Error on accept():");
+        return -1;
+    }
+
+    return client;
+}
+
+int create_tcp_listening_socket(int serverPort)
+{
+    unsigned int        serverSocket;
+    struct sockaddr_in  server;
+
+    if ((serverSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    {
+        perror("Error on socket():");
+        return -1;
+    }
+
+    int on = 1;
+    setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
+    bzero(&server, sizeof(server));
+
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = htonl(INADDR_ANY);
+    server.sin_port = htons(serverPort);
+
+    if (bind(serverSocket, (struct sockaddr *)&server, sizeof(struct sockaddr)) == -1)
+    {
+        perror("Error on bind():");
+        return -1;
+    }
+    
+    if (listen(serverSocket, 2) == -1)
+    {
+        perror("Error on listen():");
+        return -1;
+    }
+
+    printf("Waiting clients on port %d ...\n", serverPort);
+
+    listen_socket = serverSocket;
+    return 0;
 }
 
 int get_key_from_server(char* hostname, char* port, char* mode, unsigned char* received_key)
