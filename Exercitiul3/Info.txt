@@ -1,0 +1,26 @@
+1. Continut
+3 fisiere sursa:    key-manager.c - key-managerul ce se ocupa cu distribuirea de chei
+                    a.c - nodul A din enunt care initiaza cnversatia cu key-manager si B
+                    b.c - nodul B care primeste fisierul de la A
+2 fisiere ajutatoare:   communication.c - functii ce se ocupa de comunicarea in retea
+                        crypt-lib.c - functii ce se ocupa cu criptarea si decriptarea si cu afisarea de loguri
+
+2. Rulare
+./a <hostname> <portul key-managerului> <portul nodului b> <modul:ecb sau cbc> <fisierul ce urmeaza a fi transimis> [-v]
+./b <portul> <hostname> <portul serverului> <modul:ecb sau cbc>
+./key-manager <portul> [-v]
+
+3.Exemplu
+./key-manager 9000
+./b 9001 127.0.0.1 9000
+./a 127.0.0.1 9000 9001 ecb file.txt
+Obs. Neaparat in aceasta ordine!
+
+4.Modul de rezolvare
+Am implementat structura de comunicare utilizand 2 servere TCP si un client. Key-manager este un server care raspunde cu o cheie criptata 
+in functie de modul primit. Clientul este nodul A. El initiaza comunicarea cu nodul key-manager cerandu-i o cheie si cu nodul B (server care asteapta)
+caruia ii transmite modul de criptare. Nodul B ii cere nodului key-manager o cheie si cand o primeste ii transimte nodului A mesajul "yes". Acesta
+citeste fisierul, il imparte in blocuri de 16 bytes, il cripteaza si il trimite lui B care afiseaza textul decriptat.
+
+Obs. Pentru a implementa modurile ECB si CBC am folosit functia aes_128_ECB careia i-am trimis doar 16 bytes ca plaintext si am setat paddingul pe 0,
+ca algoritmul sa nu adauge automat padding (acesta e comportamentul implicit al algoritmului de padding cand primeste un block de lungime 16).

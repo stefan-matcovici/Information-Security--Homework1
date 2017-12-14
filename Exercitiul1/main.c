@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 
     if ( argc != 4 )
     {
-        printf("Invalid number of parameters!\n");
+        printf("usage: %s <plaintext file> <cryptotext file> <mode>\n", argv[0]);
         exit(1);
     }
 
@@ -125,6 +125,7 @@ int main(int argc, char** argv)
     strcat(algorithm_name, stoupper(mode));
 
     token = strtok (words,"\n");
+    int ok = 0;
     while (token != NULL)
     {
         tries++;
@@ -148,10 +149,16 @@ int main(int argc, char** argv)
         if (strcmp(computed_plaintext, cryptotext)==0)
         {
             printf("Key is %s\nTried: %d\n",token,tries);
+            ok = 1;
             break;
         }
 
         token = strtok (NULL, "\n");
+    }
+
+    if (ok == 0) 
+    {
+        printf("Couldn't find key\n");
     }
 
     return 0;

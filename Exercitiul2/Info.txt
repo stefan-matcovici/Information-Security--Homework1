@@ -1,0 +1,10 @@
+1. Continut
+1 fisier sursa:   main.c - rezolvarea propriu-zisa
+                        
+2. Rulare
+./out <fisier1> <fisier1>
+
+3.Exemplu
+./enc f1.txt f2.txt
+
+4.Modul de rezolvare

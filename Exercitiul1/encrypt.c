@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 {
     if ( argc != 5 )
     {
-        printf("Invalid number of parameters!\n");
+        printf("usage: %s <plaintext file> <cryptotext file> <mode> <key>\n", argv[0]);
         exit(1);
     }
 

@@ -1,0 +1,12 @@
+1. Continut
+2 fisiere sursa:   main.c - rezolvarea propriu-zisa
+                            encrypt.c program ce cripteaza doua fisiere cu o cheie formata dintr-un cuvant ca in enunt
+2. Rulare
+./enc <fisier_cu_text_in_clar> <fisier_in_care_vom_pune_fiserul_criptat> <modul:ecb sau cbc> <cuvantul care va fi cheia>
+./out <fisier_cu_text_in_clar> <fisier_cu_textul_criptat> <modul:ecb sau cbc>
+
+3.Exemplu
+./enc test1.txt out.txt ecb mouse
+./out test1.txt out.txt ecb
+
+4.Modul de rezolvare
